@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>MASS ADOPTION — Action Skill Cooldowns</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+    :root{
+        --bg-1:#0b1220;
+        --bg-2:#0e1a2e;
+        --glass: rgba(255,255,255,0.06);
+        --border: rgba(255,255,255,0.12);
+        --ready:#00e08a;
+        --active:#ff3b3b;
+        --txt:#e9f0ff;
+        --muted:#a6b2c6;
+        --glow:#6ae0ff;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+        margin:0;
+        font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+        background:
+            radial-gradient(1200px 800px at 10% 10%, #102035 0%, transparent 60%),
+            radial-gradient(1000px 700px at 90% 90%, #141b2a 0%, transparent 60%),
+            linear-gradient(180deg, var(--bg-1), var(--bg-2));
+        color:var(--txt);
+        display:flex; align-items:center; justify-content:center; padding:24px;
+    }
+    .panel{
+        width:min(520px, 92vw);
+        padding:24px 20px;
+        background:var(--glass);
+        border:1px solid var(--border);
+        box-shadow: 0 10px 40px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06);
+        border-radius:24px;
+        backdrop-filter: blur(12px);
+    }
+    .header{
+        display:flex; align-items:center; justify-content:space-between;
+        margin-bottom:16px; gap:10px;
+    }
+    .title{
+        font-weight:800; letter-spacing:0.3px; font-size:20px;
+        display:flex; align-items:center; gap:10px;
+    }
+    .title .dot{
+        width:10px; height:10px; border-radius:50%;
+        background:linear-gradient(135deg, #66f -5%, #0ff 110%);
+        box-shadow:0 0 16px var(--glow);
+    }
+    .subtitle{ color:var(--muted); font-size:13px }
+    .stack{
+        display:flex; flex-direction:column; gap:18px; margin-top:8px;
+    }
+
+    .skill{
+        display:flex; align-items:center; gap:16px;
+        padding:12px; border-radius:18px; position:relative; overflow:hidden;
+        border:1px solid var(--border);
+        background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0));
+    }
+    .skill::after{
+        content:""; position:absolute; inset:-40%;
+        background: radial-gradient(40% 40% at 15% 15%, rgba(255,255,255,0.06), transparent 50%),
+                    radial-gradient(30% 30% at 85% 80%, rgba(255,255,255,0.04), transparent 50%);
+        animation: drift 12s linear infinite;
+        pointer-events:none;
+    }
+    @keyframes drift {
+        0%{ transform: translate(0,0) rotate(0deg); }
+        50%{ transform: translate(-2%,1%) rotate(20deg); }
+        100%{ transform: translate(0,0) rotate(0deg); }
+    }
+
+    /* Circle button */
+    .circle{
+        --accent: var(--ready);
+        width:150px;
+        height:150px;
+        flex-shrink:0;
+        border-radius:50%;
+        position:relative;
+        cursor:pointer;
+        display:grid;
+        place-items:center;
+        transition: transform .25s ease, filter .25s ease;
+        filter: drop-shadow(0 0 0 rgba(0,0,0,0));
+    }
+    .circle:hover{ transform: translateY(-2px) scale(1.02) }
+    .ring, .core{
+        position:absolute; border-radius:50%;
+    }
+    .ring{
+        inset:0;
+        background:
+            conic-gradient(from -90deg, var(--accent) 0deg, var(--accent) 360deg);
+        box-shadow: 0 0 22px rgba(0, 224, 138, .45);
+        transition: box-shadow .25s ease;
+    }
+    .circle:hover .ring{
+        box-shadow: 0 0 32px rgba(0, 224, 138, .75), 0 0 48px rgba(0, 224, 138, .35);
+    }
+    .core{
+        inset:6px;
+        background: radial-gradient(120% 120% at 30% 20%, rgba(255,255,255,0.18), rgba(255,255,255,0.06) 35%, rgba(15,25,40,0.7) 100%);
+        border:1px solid rgba(255,255,255,0.12);
+        display:grid; place-items:center; text-align:center; padding:8px;
+        overflow:hidden;
+    }
+    .core::before{
+        content:""; position:absolute; inset:-40%;
+        background:
+            radial-gradient(35% 35% at 70% 30%, rgba(0,255,180,.16), transparent 55%),
+            radial-gradient(35% 35% at 20% 80%, rgba(0,140,255,.16), transparent 55%);
+        filter: blur(10px);
+        animation: swirl 8s ease-in-out infinite;
+    }
+    @keyframes swirl {
+        0%,100%{ transform: rotate(0deg) translate(0,0) }
+        50%{ transform: rotate(8deg) translate(1%, -1%) }
+    }
+
+    .label{
+        position:relative; z-index:1;
+        display:flex; flex-direction:column; align-items:center; gap:2px;
+        user-select:none;
+    }
+    .name{
+        font-weight:800; letter-spacing:.3px; font-size:12px;
+        padding:4px 8px; border-radius:999px;
+        background: rgba(255,255,255,0.08);
+        border:1px solid rgba(255,255,255,0.14);
+        backdrop-filter: blur(4px);
+        white-space: nowrap;
+    }
+    .status{
+        font-size:22px; font-weight:800; line-height:1;
+    }
+    .hint{
+        font-size:11px; color:var(--muted); font-weight:600; letter-spacing:.2px;
+    }
+
+    .circle.active{ --accent: var(--active); }
+    .circle.active .ring{ box-shadow: 0 0 22px rgba(255, 59, 59, .45); }
+    .circle.active:hover .ring{ box-shadow: 0 0 36px rgba(255, 59, 59, .8), 0 0 56px rgba(255,59,59,.35); }
+
+    .meta{
+        display:flex; flex-direction:column; gap:4px;
+        position: relative;
+    }
+    .meta .titleline{
+        display:flex; align-items:baseline; gap:10px; flex-wrap:wrap;
+    }
+    .meta .skillname{ font-weight:800; letter-spacing:.2px }
+    .meta .cooldown{ color:var(--muted); font-size:12px }
+    .pill{
+        font-size:11px; padding:4px 8px; border-radius:999px; border:1px solid var(--border);
+        background: rgba(255,255,255,0.05); color:var(--muted);
+        position: relative;
+    }
+    /* Updated styles for the RESET button */
+    .reset-pill {
+        margin-top: 4px; /* Add some space below the description */
+        cursor: pointer;
+        user-select: none;
+        display: inline-block;
+        transition: all 0.2s ease-in-out;
+        /* Updated styles for positioning the new timer */
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+    /* Styles for the new rotating timer ring */
+    .reset-timer-ring {
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        position: relative;
+        display: none; /* Initially hidden */
+    }
+    .reset-timer-ring::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: 50%;
+        /* The main "timer" effect using a conic gradient */
+        background: conic-gradient(
+            transparent 0%,
+            transparent 90%,
+            rgba(255, 255, 255, 0.4) 90%, /* Updated color to transparent grey */
+            rgba(255, 255, 255, 0.4) 100%
+        );
+        animation: reset-timer 1s linear forwards;
+        opacity: 0;
+    }
+    .reset-pill.holding {
+        background-color: var(--active);
+        color: white;
+        transform: scale(1.1);
+        box-shadow: 0 0 10px rgba(255,59,59,0.5);
+    }
+    .reset-pill.holding .reset-timer-ring {
+        display: block; /* Show the timer when holding */
+    }
+    .reset-pill.holding .reset-timer-ring::before {
+        opacity: 1;
+    }
+    @keyframes reset-timer {
+        from { transform: rotate(-90deg); }
+        to { transform: rotate(270deg); }
+    }
+    .skill[data-skill="collect"] .circle:hover{ filter: drop-shadow(0 0 16px rgba(0,224,138,.45)) }
+    .skill[data-skill="tweet"]      .circle:hover{ filter: drop-shadow(0 0 16px rgba(80,180,255,.45)) }
+    .skill[data-skill="hype"]       .circle:hover{ filter: drop-shadow(0 0 16px rgba(255,160,64,.45)) }
+    .skill[data-skill="bullrun"] .circle:hover{ filter: drop-shadow(0 0 16px rgba(208,160,255,.45)) }
+
+    @media (max-width:480px){
+        .circle{ width:136px; height:136px; }
+    }
+</style>
+</head>
+<body>
+
+    <div class="panel">
+        <div class="header">
+            <div class="title"><span class="dot"></span> MASS ADOPTION — Action Skills</div>
+            <div class="subtitle">Tap a circle to start its cooldown</div>
+        </div>
+
+        <div class="stack" id="stack">
+            <div class="skill" data-skill="collect">
+                <div class="circle" data-duration="60" aria-label="Collect cooldown">
+                    <div class="ring"></div>
+                    <div class="core">
+                        <div class="label">
+                            <div class="name">💵 COLLECT</div>
+                            <div class="status" data-role="status">READY</div>
+                            <div class="hint">Ready to collect</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="meta">
+                    <div class="titleline">
+                        <div class="skillname">Collect</div>
+                        <span class="pill">CD: 1 min</span>
+                    </div>
+                    <div class="cooldown">Starts green, turns red on tap, counts 1:00 → 0:00, auto-resets.</div>
+                    <span class="pill reset-pill" aria-label="Reset cooldown" data-skill-id="collect">
+                        <span>RESET (HOLD)</span>
+                        <span class="reset-timer-ring"></span>
+                    </span>
+                </div>
+            </div>
+
+            <div class="skill" data-skill="tweet">
+                <div class="circle" data-duration="600" aria-label="Tweet cooldown">
+                    <div class="ring"></div>
+                    <div class="core">
+                        <div class="label">
+                            <div class="name">🐦 TWEET</div>
+                            <div class="status" data-role="status">READY</div>
+                            <div class="hint">10–20 random users</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="meta">
+                    <div class="titleline">
+                        <div class="skillname">Tweet</div>
+                        <span class="pill">Min CD: 10 mins</span>
+                    </div>
+                    <div class="cooldown">Minimum cooldown is 10 minutes. Counts 10:00 → 0:00.</div>
+                    <span class="pill reset-pill" aria-label="Reset cooldown" data-skill-id="tweet">
+                        <span>RESET (HOLD)</span>
+                        <span class="reset-timer-ring"></span>
+                    </span>
+                </div>
+            </div>
+
+            <div class="skill" data-skill="hype">
+                <div class="circle" data-duration="900" aria-label="Hype cooldown">
+                    <div class="ring"></div>
+                    <div class="core">
+                        <div class="label">
+                            <div class="name">🔥 HYPE</div>
+                            <div class="status" data-role="status">READY</div>
+                            <div class="hint">Airdrop or Balance</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="meta">
+                    <div class="titleline">
+                        <div class="skillname">Hype</div>
+                        <span class="pill">Min CD: 15 mins</span>
+                    </div>
+                    <div class="cooldown">Grants Airdrop or Balance. Counts 15:00 → 0:00.</div>
+                    <span class="pill reset-pill" aria-label="Reset cooldown" data-skill-id="hype">
+                        <span>RESET (HOLD)</span>
+                        <span class="reset-timer-ring"></span>
+                    </span>
+                </div>
+            </div>
+
+            <div class="skill" data-skill="bullrun">
+                <div class="circle" data-duration="3600" aria-label="Bull Run cooldown">
+                    <div class="ring"></div>
+                    <div class="core">
+                        <div class="label">
+                            <div class="name">🐂 BULL RUN</div>
+                            <div class="status" data-role="status">READY</div>
+                            <div class="hint">+100 income/min • 20m</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="meta">
+                    <div class="titleline">
+                        <div class="skillname">Bull Run</div>
+                        <span class="pill">Min CD: 60 mins</span>
+                    </div>
+                    <div class="cooldown">Coordinate with your team for overlapping boosts.</div>
+                    <span class="pill reset-pill" aria-label="Reset cooldown" data-skill-id="bullrun">
+                        <span>RESET (HOLD)</span>
+                        <span class="reset-timer-ring"></span>
+                    </span>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+<script>
+(function(){
+    // Utility function to format seconds into m:ss format
+    function fmt(secs){
+        const m = Math.floor(secs/60);
+        const s = secs % 60;
+        return `${m}:${s<10?'0':''}${s}`;
+    }
+
+    document.querySelectorAll('.skill').forEach(skillElement => {
+        // Get the skill ID from the parent element to use as a key for localStorage
+        const skillId = skillElement.getAttribute('data-skill');
+        const circle = skillElement.querySelector('.circle');
+        const duration = parseInt(circle.getAttribute('data-duration'),10);
+        const statusEl = circle.querySelector('[data-role="status"]');
+        // Update the selector to find the new pill-style reset button
+        const resetButton = skillElement.querySelector('.reset-pill');
+        let ticking = false, remaining = 0, rafId = null, lastTick = null;
+        let holdTimeout = null;
+
+        // Function to draw the cooldown ring
+        function draw(){
+            const ring = circle.querySelector('.ring');
+            const f = remaining / duration;
+            const deg = Math.max(0, Math.min(360, 360*f));
+            ring.style.background = `conic-gradient(from -90deg, var(--accent) ${deg}deg, rgba(255,255,255,0.08) ${deg}deg 360deg)`;
+        }
+
+        // Function to start the cooldown timer
+        function start(){
+            // Do not start if a timer is already running
+            if(ticking) return;
+            
+            // Save the start time and duration to localStorage for persistence
+            localStorage.setItem(skillId, JSON.stringify({
+                startTime: Date.now(),
+                duration: duration
+            }));
+            
+            ticking = true;
+            circle.classList.add('active');
+            remaining = duration;
+            statusEl.textContent = fmt(remaining);
+            draw();
+            lastTick = performance.now();
+
+            const step = (now)=>{
+                const dt = (now - lastTick) / 1000;
+                lastTick = now;
+                remaining = Math.max(0, remaining - dt);
+                statusEl.textContent = fmt(Math.ceil(remaining));
+                draw();
+
+                if(remaining <= 0){
+                    stop(true);
+                    return;
+                }
+                rafId = requestAnimationFrame(step);
+            };
+            rafId = requestAnimationFrame(step);
+        }
+
+        // Function to stop the cooldown timer
+        function stop(auto=false){
+            // Clear the localStorage item when the timer stops
+            localStorage.removeItem(skillId);
+            
+            ticking = false;
+            if(rafId) cancelAnimationFrame(rafId);
+            circle.classList.remove('active');
+            statusEl.textContent = 'READY';
+            const ring = circle.querySelector('.ring');
+            ring.style.background = `conic-gradient(from -90deg, var(--accent) 360deg, var(--accent) 360deg)`;
+            
+            if(auto){
+                circle.animate(
+                    [{filter:'drop-shadow(0 0 0 rgba(0,255,170,0))'},
+                    {filter:'drop-shadow(0 0 18px rgba(0,255,170,.9))'},
+                    {filter:'drop-shadow(0 0 0 rgba(0,255,170,0))'}],
+                    {duration:650, easing:'ease-out'}
+                );
+            }
+        }
+
+        // Event listener to start the timer on click
+        circle.addEventListener('click', start);
+        
+        // --- Updated code for the RESET button functionality for both mouse and touch events ---
+        const startHold = (e) => {
+            if (!ticking) return; // Only allow reset if a timer is active
+            e.preventDefault();
+            resetButton.classList.add('holding');
+            holdTimeout = setTimeout(() => {
+                // Timer held for 1 second, trigger reset
+                stop(false);
+                resetButton.classList.remove('holding');
+            }, 1000); // 1 second
+        };
+
+        const endHold = () => {
+            clearTimeout(holdTimeout);
+            resetButton.classList.remove('holding');
+        };
+
+        // Mouse events
+        resetButton.addEventListener('mousedown', startHold);
+        resetButton.addEventListener('mouseup', endHold);
+        resetButton.addEventListener('mouseleave', endHold);
+        
+        // Touch events
+        resetButton.addEventListener('touchstart', startHold);
+        resetButton.addEventListener('touchend', endHold);
+        resetButton.addEventListener('touchcancel', endHold);
+        // --- End of updated code ---
+
+        // Check for a saved state in localStorage on page load
+        const savedState = JSON.parse(localStorage.getItem(skillId));
+        if (savedState) {
+            const timeElapsed = (Date.now() - savedState.startTime) / 1000;
+            const timeLeft = savedState.duration - timeElapsed;
+            if (timeLeft > 0) {
+                // Resume the timer from the saved state
+                ticking = true;
+                circle.classList.add('active');
+                remaining = timeLeft;
+                lastTick = performance.now();
+                const step = (now) => {
+                    const dt = (now - lastTick) / 1000;
+                    lastTick = now;
+                    remaining = Math.max(0, remaining - dt);
+                    statusEl.textContent = fmt(Math.ceil(remaining));
+                    draw();
+                    if (remaining <= 0) {
+                        stop(true);
+                        return;
+                    }
+                    rafId = requestAnimationFrame(step);
+                };
+                rafId = requestAnimationFrame(step);
+            } else {
+                // If the timer has already expired, clear the saved state
+                localStorage.removeItem(skillId);
+            }
+        } else {
+            // Initial state if no saved timer is found
+            stop(false);
+        }
+    });
+})();
+</script>
+</body>
+</html>
